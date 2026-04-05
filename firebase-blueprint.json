@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "An item for sale in the gallery.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the product." },
+        "price": { "type": "string", "description": "Price of the product (e.g., ₦25,000)." },
+        "category": { "type": "string", "enum": ["Turkey Wears", "Ankara Styles", "Casual Outfits", "Luxury Wears"], "description": "Category of the product." },
+        "image": { "type": "string", "description": "URL of the product image." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the product was added." }
+      },
+      "required": ["name", "price", "category", "image"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "A customer review.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the customer." },
+        "text": { "type": "string", "description": "Review text." },
+        "rating": { "type": "integer", "description": "Rating out of 5." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the review was submitted." }
+      },
+      "required": ["name", "text", "rating"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A contact form submission.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the sender." },
+        "email": { "type": "string", "description": "Email of the sender." },
+        "message": { "type": "string", "description": "Message content." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the message was sent." }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user profile with roles.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "Email of the user." },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "Role of the user." }
+      },
+      "required": ["email", "role"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A record of a WhatsApp order attempt.",
+      "type": "object",
+      "properties": {
+        "productName": { "type": "string", "description": "Name of the product." },
+        "productPrice": { "type": "string", "description": "Base price of the product." },
+        "deliveryType": { "type": "string", "description": "Standard or Express." },
+        "deliveryFee": { "type": "number", "description": "Fee for delivery." },
+        "totalAmount": { "type": "number", "description": "Total price including delivery." },
+        "userEmail": { "type": "string", "description": "Email of the user who ordered (if logged in)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the order was initiated." }
+      },
+      "required": ["productName", "productPrice", "deliveryType", "totalAmount"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products."
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "Testimonial",
+      "description": "Collection of testimonials."
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Collection of contact messages."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of WhatsApp order records."
+    }
+  }
+}

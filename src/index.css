@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-nude: #f5ebe0;
+  --color-brand-pink: #fcd5ce;
+  --color-brand-gold: #d4af37;
+  --color-brand-blush: #ffb5a7;
+  
+  --font-display: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-gray-900 font-sans antialiased;
+}
+
+h1, h2, h3, h4 {
+  @apply font-display;
+}
+
+.glass-nav {
+  @apply bg-white/80 backdrop-blur-md border-b border-brand-nude;
+}
+
+.btn-primary {
+  @apply bg-brand-gold text-white px-8 py-3 rounded-full font-medium transition-all hover:opacity-90 active:scale-95;
+}
+
+.btn-outline {
+  @apply border-2 border-brand-gold text-brand-gold px-8 py-3 rounded-full font-medium transition-all hover:bg-brand-gold hover:text-white active:scale-95;
+}
+
