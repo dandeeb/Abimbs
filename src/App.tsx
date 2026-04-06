@@ -551,15 +551,6 @@ Please confirm availability.`;
                 {item}
               </a>
             ))}
-            {isAdmin && (
-              <Link 
-                to="/admin"
-                className="text-sm font-bold text-brand-gold flex items-center gap-1 hover:underline"
-              >
-                <LayoutDashboard size={16} />
-                Admin
-              </Link>
-            )}
             {!user ? (
               <button 
                 onClick={signInWithGoogle}
@@ -610,16 +601,6 @@ Please confirm availability.`;
                     {item}
                   </a>
                 ))}
-                {isAdmin && (
-                  <Link 
-                    to="/admin"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="text-lg font-bold text-brand-gold flex items-center gap-2"
-                  >
-                    <LayoutDashboard size={20} />
-                    Admin Dashboard
-                  </Link>
-                )}
                 {!user ? (
                   <button 
                     onClick={signInWithGoogle}
