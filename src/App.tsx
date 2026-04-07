@@ -389,7 +389,48 @@ Please confirm availability.`;
   return (
     <Routes>
       <Route path="/admin" element={
-        isAdmin ? (
+        !user ? (
+          <div className="min-h-screen flex items-center justify-center bg-brand-nude p-6">
+            <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center">
+              <div className="w-20 h-20 bg-brand-gold/10 text-brand-gold rounded-full flex items-center justify-center mx-auto mb-8">
+                <LayoutDashboard size={40} />
+              </div>
+              <h2 className="text-3xl font-bold mb-4">Admin Portal</h2>
+              <p className="text-gray-600 mb-8">Please sign in with your administrator account to access the dashboard.</p>
+              <button 
+                onClick={signInWithGoogle}
+                className="w-full bg-white border-2 border-gray-100 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-gray-50 transition-all shadow-sm"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+                Sign in with Google
+              </button>
+              <Link to="/" className="inline-block mt-8 text-gray-400 hover:text-brand-gold font-medium transition-colors">
+                &larr; Back to Website
+              </Link>
+            </div>
+          </div>
+        ) : !isAdmin ? (
+          <div className="min-h-screen flex items-center justify-center bg-brand-nude p-6">
+            <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center">
+              <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-8">
+                <AlertCircle size={40} />
+              </div>
+              <h2 className="text-3xl font-bold mb-4">Access Denied</h2>
+              <p className="text-gray-600 mb-8">You do not have administrator privileges. Please contact the site owner if you believe this is an error.</p>
+              <div className="space-y-4">
+                <button 
+                  onClick={logOut}
+                  className="w-full bg-red-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+                >
+                  <LogOut size={20} /> Sign Out
+                </button>
+                <Link to="/" className="inline-block text-gray-400 hover:text-brand-gold font-medium transition-colors">
+                  &larr; Back to Website
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
           <div className="min-h-screen bg-gray-50 flex flex-col">
             <nav className="glass-nav py-4 sticky top-0 z-50">
               <div className="container mx-auto px-6 flex justify-between items-center">
@@ -714,7 +755,7 @@ Please confirm availability.`;
           )}
         </main>
       </div>
-        ) : <Navigate to="/" />
+        )
       } />
       <Route path="/" element={
         <div className="min-h-screen flex flex-col">
