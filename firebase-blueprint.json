@@ -58,9 +58,26 @@
         "deliveryFee": { "type": "number", "description": "Fee for delivery." },
         "totalAmount": { "type": "number", "description": "Total price including delivery." },
         "userEmail": { "type": "string", "description": "Email of the user who ordered (if logged in)." },
+        "status": { "type": "string", "enum": ["Pending", "Paid", "Shipped", "Delivered", "Cancelled"], "description": "Current status of the order." },
+        "paymentStatus": { "type": "string", "enum": ["Unpaid", "Paid"], "description": "Whether the order has been paid for." },
         "createdAt": { "type": "string", "format": "date-time", "description": "When the order was initiated." }
       },
-      "required": ["productName", "productPrice", "deliveryType", "totalAmount"]
+      "required": ["productName", "productPrice", "deliveryType", "totalAmount", "status", "paymentStatus"]
+    },
+    "SiteContent": {
+      "title": "Site Content",
+      "description": "Editable frontend content.",
+      "type": "object",
+      "properties": {
+        "heroTitle": { "type": "string", "description": "Main title on the hero section." },
+        "heroSubtitle": { "type": "string", "description": "Subtitle on the hero section." },
+        "aboutText": { "type": "string", "description": "Text for the About Us section." },
+        "whatsappNumber": { "type": "string", "description": "WhatsApp contact number." },
+        "instagramUrl": { "type": "string", "description": "Instagram profile link." },
+        "tiktokUrl": { "type": "string", "description": "TikTok profile link." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the content was last updated." }
+      },
+      "required": ["heroTitle", "heroSubtitle", "aboutText", "whatsappNumber"]
     }
   },
   "firestore": {
@@ -83,6 +100,10 @@
     "/orders/{orderId}": {
       "schema": "Order",
       "description": "Collection of WhatsApp order records."
+    },
+    "/site_content/{contentId}": {
+      "schema": "SiteContent",
+      "description": "Collection for editable site content (usually one document)."
     }
   }
 }

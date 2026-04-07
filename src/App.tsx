@@ -125,6 +125,14 @@ function MainApp() {
   const [products, setProducts] = useState<Product[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [siteContent, setSiteContent] = useState<any>({
+    heroTitle: 'Elegance in Every Stitch.',
+    heroSubtitle: 'Discover our curated collection of high-quality Turkey wears, Ankara styles, and luxury outfits designed for the modern woman.',
+    aboutText: 'Abimbs Fashion Gallery is a premier destination for high-quality female fashion. We specialize in authentic Turkey wears, exquisite Ankara styles, and luxury outfits that make every woman feel confident and beautiful.',
+    whatsappNumber: BRAND_INFO.whatsapp,
+    instagramUrl: BRAND_INFO.instagram,
+    tiktokUrl: BRAND_INFO.tiktok
+  });
   const [loading, setLoading] = useState(true);
   
   // Delivery & Checkout States
@@ -140,6 +148,8 @@ function MainApp() {
     image: ''
   });
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [editableContent, setEditableContent] = useState<any>(null);
+  const [isUpdatingContent, setIsUpdatingContent] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -191,12 +201,33 @@ function MainApp() {
       handleFirestoreError(error, OperationType.LIST, 'orders');
     });
 
+    // Fetch Site Content
+    const unsubscribeContent = onSnapshot(doc(db, 'site_content', 'main'), (snapshot) => {
+      if (snapshot.exists()) {
+        setSiteContent(snapshot.data());
+        setEditableContent(snapshot.data());
+      } else {
+        // Initialize with defaults if not exists
+        setEditableContent({
+          heroTitle: 'Elegance in Every Stitch.',
+          heroSubtitle: 'Discover our curated collection of high-quality Turkey wears, Ankara styles, and luxury outfits designed for the modern woman.',
+          aboutText: 'Abimbs Fashion Gallery is a premier destination for high-quality female fashion. We specialize in authentic Turkey wears, exquisite Ankara styles, and luxury outfits that make every woman feel confident and beautiful.',
+          whatsappNumber: BRAND_INFO.whatsapp,
+          instagramUrl: BRAND_INFO.instagram,
+          tiktokUrl: BRAND_INFO.tiktok
+        });
+      }
+    }, (error) => {
+      console.error("Error fetching site content:", error);
+    });
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       unsubscribeAuth();
       unsubscribeProducts();
       unsubscribeTestimonials();
       unsubscribeOrders();
+      unsubscribeContent();
     };
   }, []);
 
@@ -248,6 +279,8 @@ function MainApp() {
         deliveryFee: delivery.fee,
         totalAmount: totalPrice,
         userEmail: user?.email || 'Guest',
+        status: 'Pending',
+        paymentStatus: 'Unpaid',
         createdAt: serverTimestamp()
       });
     } catch (error) {
@@ -260,13 +293,13 @@ Delivery option selected: ${delivery.label} (${delivery.timeline}).
 Total Price: ${formattedTotal}
 Please confirm availability.`;
 
-    window.open(`https://wa.me/${BRAND_INFO.whatsapp}?text=${encodeURIComponent(message)}`, '_blank');
+    window.open(`https://wa.me/${siteContent.whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
     setOrderConfirmed(true);
   };
 
   const handleGeneralWhatsApp = () => {
     const message = `Hello Abimbs Fashion Gallery, I'm interested in your collections.`;
-    window.open(`https://wa.me/${BRAND_INFO.whatsapp}?text=${encodeURIComponent(message)}`, '_blank');
+    window.open(`https://wa.me/${siteContent.whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   // Admin Actions
@@ -312,7 +345,46 @@ Please confirm availability.`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
+  const handleUpdateContent = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!isAdmin || !editableContent) return;
+    setIsUpdatingContent(true);
+    try {
+      await updateDoc(doc(db, 'site_content', 'main'), {
+        ...editableContent,
+        updatedAt: serverTimestamp()
+      });
+      alert("Site content updated successfully!");
+    } catch (error) {
+      // If document doesn't exist, create it
+      try {
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(doc(db, 'site_content', 'main'), {
+          ...editableContent,
+          updatedAt: serverTimestamp()
+        });
+        alert("Site content initialized and updated!");
+      } catch (innerError) {
+        handleFirestoreError(innerError, OperationType.UPDATE, 'site_content/main');
+      }
+    } finally {
+      setIsUpdatingContent(false);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, field: 'status' | 'paymentStatus', value: string) => {
+    if (!isAdmin) return;
+    try {
+      await updateDoc(doc(db, 'orders', orderId), {
+        [field]: value,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'content'>('products');
 
   return (
     <Routes>
@@ -343,6 +415,12 @@ Please confirm availability.`;
                   className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'orders' ? 'bg-white shadow-sm text-brand-gold' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   Orders
+                </button>
+                <button 
+                  onClick={() => setActiveTab('content')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'content' ? 'bg-white shadow-sm text-brand-gold' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Site Content
                 </button>
               </div>
               <div className="flex items-center gap-4">
@@ -487,11 +565,11 @@ Please confirm availability.`;
                 </div>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'orders' ? (
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-100">
-                <h2 className="text-xl font-bold">Recent Order Attempts ({orders.length})</h2>
-                <p className="text-sm text-gray-500">These are records of customers who clicked "Confirm Order via WhatsApp".</p>
+                <h2 className="text-xl font-bold">Order Management ({orders.length})</h2>
+                <p className="text-sm text-gray-500">Manage customer orders and payment statuses. Paystack integration will update these automatically in the future.</p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -499,9 +577,10 @@ Please confirm availability.`;
                     <tr className="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
                       <th className="px-6 py-4 font-bold">Date</th>
                       <th className="px-6 py-4 font-bold">Product</th>
-                      <th className="px-6 py-4 font-bold">Delivery</th>
-                      <th className="px-6 py-4 font-bold">Total</th>
                       <th className="px-6 py-4 font-bold">Customer</th>
+                      <th className="px-6 py-4 font-bold">Status</th>
+                      <th className="px-6 py-4 font-bold">Payment</th>
+                      <th className="px-6 py-4 font-bold">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -511,19 +590,125 @@ Please confirm availability.`;
                           {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'Just now'}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="font-medium">{order.productName}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{order.productName}</span>
+                            <span className="text-xs text-gray-400">{order.deliveryType}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">{order.userEmail}</td>
+                        <td className="px-6 py-4">
+                          <select 
+                            value={order.status || 'Pending'}
+                            onChange={(e) => handleUpdateOrderStatus(order.id, 'status', e.target.value)}
+                            className={`text-xs font-bold px-2 py-1 rounded-full border-none outline-none cursor-pointer ${
+                              order.status === 'Delivered' ? 'bg-green-100 text-green-700' : 
+                              order.status === 'Cancelled' ? 'bg-red-100 text-red-700' : 
+                              'bg-brand-gold/10 text-brand-gold'
+                            }`}
+                          >
+                            {["Pending", "Paid", "Shipped", "Delivered", "Cancelled"].map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${order.deliveryType === 'Express Delivery' ? 'bg-brand-gold/10 text-brand-gold' : 'bg-gray-100 text-gray-600'}`}>
-                            {order.deliveryType}
-                          </span>
+                          <select 
+                            value={order.paymentStatus || 'Unpaid'}
+                            onChange={(e) => handleUpdateOrderStatus(order.id, 'paymentStatus', e.target.value)}
+                            className={`text-xs font-bold px-2 py-1 rounded-full border-none outline-none cursor-pointer ${
+                              order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {["Unpaid", "Paid"].map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-6 py-4 font-bold">₦{order.totalAmount?.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{order.userEmail}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <Edit size={24} />
+                  Edit Frontend Content
+                </h2>
+                <form onSubmit={handleUpdateContent} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Hero Title</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={editableContent?.heroTitle || ''}
+                        onChange={(e) => setEditableContent({...editableContent, heroTitle: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold outline-none"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Hero Subtitle</label>
+                      <textarea 
+                        required
+                        rows={2}
+                        value={editableContent?.heroSubtitle || ''}
+                        onChange={(e) => setEditableContent({...editableContent, heroSubtitle: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold outline-none"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">About Us Text</label>
+                      <textarea 
+                        required
+                        rows={4}
+                        value={editableContent?.aboutText || ''}
+                        onChange={(e) => setEditableContent({...editableContent, aboutText: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">WhatsApp Number (e.g. 234806...)</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={editableContent?.whatsappNumber || ''}
+                        onChange={(e) => setEditableContent({...editableContent, whatsappNumber: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Instagram URL</label>
+                      <input 
+                        type="url" 
+                        value={editableContent?.instagramUrl || ''}
+                        onChange={(e) => setEditableContent({...editableContent, instagramUrl: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">TikTok URL</label>
+                      <input 
+                        type="url" 
+                        value={editableContent?.tiktokUrl || ''}
+                        onChange={(e) => setEditableContent({...editableContent, tiktokUrl: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-4">
+                    <button 
+                      type="submit" 
+                      disabled={isUpdatingContent}
+                      className="btn-primary w-full py-3 rounded-xl flex items-center justify-center gap-2"
+                    >
+                      {isUpdatingContent ? 'Updating...' : 'Save Site Content'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
@@ -648,11 +833,11 @@ Please confirm availability.`;
               Premium Turkey Wears
             </span>
             <h1 className="text-6xl md:text-8xl font-bold leading-tight mb-6">
-              Elegance in <br /> 
-              <span className="text-brand-gold italic">Every Stitch.</span>
+              {siteContent.heroTitle.split(' ').slice(0, -2).join(' ')} <br /> 
+              <span className="text-brand-gold italic">{siteContent.heroTitle.split(' ').slice(-2).join(' ')}</span>
             </h1>
             <p className="text-lg text-gray-700 mb-10 max-w-lg">
-              {BRAND_INFO.tagline}. Discover our curated collection of high-quality Turkey wears, Ankara styles, and luxury outfits designed for the modern woman.
+              {siteContent.heroSubtitle}
             </p>
             <div className="flex flex-wrap gap-4">
               <a href="#collection" className="btn-primary flex items-center gap-2">
@@ -783,10 +968,7 @@ Please confirm availability.`;
               <span className="text-brand-gold font-bold uppercase tracking-widest">Our Story</span>
               <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-8">Redefining Style & Quality</h2>
               <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-                Abimbs Fashion Gallery is a premier destination for high-quality female fashion. We specialize in authentic Turkey wears, exquisite Ankara styles, and luxury outfits that make every woman feel confident and beautiful.
-              </p>
-              <p className="text-lg text-gray-700 mb-8 leading-relaxed">
-                Our mission is to provide premium fashion that combines elegance with affordability. We believe that style should be accessible without compromising on quality.
+                {siteContent.aboutText}
               </p>
               <div className="grid grid-cols-2 gap-8">
                 <div>
@@ -841,9 +1023,9 @@ Please confirm availability.`;
           <div className="flex justify-between items-end mb-12">
             <div>
               <h2 className="text-4xl font-bold">Instagram Gallery</h2>
-              <p className="text-gray-600 mt-2">Follow us @dfashionplace3</p>
+              <p className="text-gray-600 mt-2">Follow us on Instagram</p>
             </div>
-            <a href={BRAND_INFO.instagram} target="_blank" rel="noopener noreferrer" className="text-brand-gold font-bold flex items-center gap-2 hover:underline">
+            <a href={siteContent.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-brand-gold font-bold flex items-center gap-2 hover:underline">
               View Instagram <Instagram size={20} />
             </a>
           </div>
@@ -882,8 +1064,8 @@ Please confirm availability.`;
                     <Phone size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-lg">Phone</h4>
-                    <p className="text-gray-600 mt-1">{BRAND_INFO.phone}</p>
+                    <h4 className="font-bold text-lg">WhatsApp</h4>
+                    <p className="text-gray-600 mt-1">+{siteContent.whatsappNumber}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6 group">
@@ -959,7 +1141,7 @@ Please confirm availability.`;
             <div className="col-span-1 md:col-span-1">
               <h3 className="text-2xl font-display font-bold text-brand-gold mb-6">ABIMBS FASHION</h3>
               <p className="text-gray-400 leading-relaxed">
-                {BRAND_INFO.tagline}. Your number one destination for premium Turkey wears and luxury female fashion in Lagos.
+                {siteContent.heroSubtitle}
               </p>
             </div>
             <div>
@@ -983,17 +1165,14 @@ Please confirm availability.`;
             <div>
               <h4 className="font-bold mb-6">Connect</h4>
               <div className="flex gap-4 mb-6">
-                <a href={BRAND_INFO.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-brand-gold transition-colors">
+                <a href={siteContent.instagramUrl} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-brand-gold transition-colors">
                   <Instagram size={20} />
                 </a>
-                <a href={BRAND_INFO.tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-brand-gold transition-colors">
+                <a href={siteContent.tiktokUrl} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-brand-gold transition-colors">
                   <Video size={20} />
                 </a>
-                <a href={`https://wa.me/${BRAND_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-brand-gold transition-colors">
+                <a href={`https://wa.me/${siteContent.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-brand-gold transition-colors">
                   <MessageCircle size={20} />
-                </a>
-                <a href={`tel:${BRAND_INFO.phone}`} className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-brand-gold transition-colors">
-                  <Phone size={20} />
                 </a>
               </div>
               <p className="text-gray-400 text-sm">
